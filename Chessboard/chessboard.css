@@ -1,0 +1,37 @@
+
+
+.container {
+    width: 50%;
+display: grid;
+grid-template: repeat( 8 , 1fr ) / repeat( 8 , 1fr );
+border: solid;
+}
+
+.cell {
+    display: flex;
+
+
+    aspect-ratio: 1/1;
+    border: solid 1px;
+}
+
+img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.over {
+    position: relative;
+    left: -100%
+}
+
+.black{
+    color: #000000;
+    background-color: #000000;
+}
+
+.white{
+    color: #FFFFFF;
+    background-color: #FFFFFF;
+}
