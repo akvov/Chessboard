@@ -27,11 +27,11 @@ img {
 }
 
 .black{
-    color: #000000;
-    background-color: #000000;
+    border: none;
+    background-color: #602020;
 }
 
 .white{
-    color: #FFFFFF;
-    background-color: #FFFFFF;
+    border: none;
+    background-color: #ffa060;
 }
