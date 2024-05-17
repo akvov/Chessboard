@@ -21,6 +21,89 @@ function colorCells() //а есть ли смысл? можно изначаль
     }
 }
 
+function Figure(coordinates, figure)
+{
+    this.color = figure[0];
+    this.type = figure[1];
+    this.coordinates = coordinates;
+    this.moved = false; //двигался ли с начала партии
+    
+    //this.zone = 
+    //this.move = function(){};
+    return this;
+}
+
+function MoveZone(board, figure)
+{
+    let res = [];
+    switch (figure.type)
+    {
+    case 'R':
+        for (let i = 0; i < 8; i++ )
+            for (let j = 0; j < 8; j++ )
+            {
+                if ( (figure.coordinates[0] == i)||(figure.coordinates[1]==j) )
+                res.push( [i,j] );
+            }
+        break;
+    case 'N':
+        for (let i = 0; i < 8; i++ )
+            for (let j = 0; j < 8; j++ )
+            {
+                if (
+                    ( (figure.coordinates[0] == i+2) || (figure.coordinates[0] == i-2) ) ? 
+                       ( ( (figure.coordinates[1] == j+1)||(figure.coordinates[1]==j-1)  )? true : false) :
+                       ( (figure.coordinates[0] == i+1) || (figure.coordinates[0] == i-1) )?
+                       ( ( (figure.coordinates[1] == j+2)||(figure.coordinates[1]==j-2)  )? true : false) : false
+                    )
+                    res.push( [i,j] );
+            }
+        break;
+    case 'B':
+        for (let i = 0; i < 8; i++ )
+            for (let j = 0; j < 8; j++ )
+            {   
+                if ( (figure.coordinates[0] + figure.coordinates[1] == i+j ) ||
+                (figure.coordinates[0]-figure.coordinates[1] == i-j) )
+                res.push( [i,j] );
+            }
+        break;
+    case 'Q':
+        for (let i = 0; i < 8; i++ )
+            for (let j = 0; j < 8; j++ )
+            {   
+                if ( (figure.coordinates[0] + figure.coordinates[1] == i+j ) ||
+                (figure.coordinates[0]-figure.coordinates[1] == i-j) ||
+                 (figure.coordinates[0] == i)||(figure.coordinates[1]==j) 
+            )
+                res.push( [i,j] );
+            }
+        break;
+    case 'K':
+        for (let i = 0; i < 8; i++ )
+            for (let j = 0; j < 8; j++ )
+            {
+                if ( ( 
+                (figure.coordinates[0]==i)||
+                (figure.coordinates[0]==i+1)||
+                (figure.coordinates[0]==i-1) 
+            ) && (
+                (figure.coordinates[1]==j)||
+                (figure.coordinates[1]==j+1)||
+                (figure.coordinates[1]==j-1) 
+            ) )
+            res.push( [i,j] );
+            }
+        break;
+    case 'P':
+        break;
+    }
+    console.log(figure.coordinates, figure.type, res);
+    return res;
+}
+
+
+
 function defaultStage()
 {
     mainBoard = [
@@ -37,6 +120,7 @@ function defaultStage()
         for (let i = 0; i < 8; i++ )
             for (let j = 0; j < 8; j++ )
             {
+
                 setFigure( [j,i], mainBoard[i][j] )
             }
 }
@@ -48,7 +132,7 @@ function setFigure(coordinates, figure)
 {
     let cell_id = coordToDesk(coordinates);
     let cell = document.getElementById(cell_id);
-    cell.figure = figure
+    cell.figure = (figure!='0')? new Figure(coordinates, figure) : 0;
     cell.firstElementChild.src = "images/" +  (figure != "0" ? figure : "void" ) + ".png";
  
 }
@@ -61,6 +145,17 @@ function setPoint(coordinates, point) //point: true => point
     cell.lastElementChild.src = "images/" +  (point ? "point" : "void" ) + ".png";
     point ? pointedCells.push(coordinates) : pointedCells.shift();
 }
+
+function showMoves(Figure)
+{
+    let zone = MoveZone(mainBoard, Figure);
+    for (cell of zone)
+        {
+
+        setPoint(cell, true);
+        }
+}
+
 function clearPoints()
 {
     let cellCoord 
@@ -87,8 +182,12 @@ function deskToCoord(desk) //a8,h1 => 00,77
 function clickOver(elem)
 {
     console.log("over " + elem.parentNode.id + ' ' + elem.parentNode.figure);
-    setPoint(deskToCoord(elem.parentNode.id), true);
+    //setPoint(deskToCoord(elem.parentNode.id), true);
+    showMoves(elem.parentNode.figure) ;
 }
+
+
+//main
 
 let mainBoard = [
 ['0','0','0','0','0','0','0','0'],
@@ -108,3 +207,4 @@ colorCells();
 //setFigure([4,7], "WK" )
 //setFigure([4,7], "0")
 //defaultStage();
+
