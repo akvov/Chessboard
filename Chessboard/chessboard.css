@@ -35,3 +35,8 @@ img {
     border: none;
     background-color: #ffa060;
 }
+
+.lastmove{
+    border: solid 3px rgb(0, 150, 255);
+
+}

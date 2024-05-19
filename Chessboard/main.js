@@ -30,14 +30,60 @@ function Figure(coordinates, figure)
     
     this.getZone = moveZone; //определение ниже
 
-    this.move = function(newCoord)
+    this.move = moveFigure;
+    /*function(newCoord)
     {
         setFigure(this.coordinates, '0');
         setFigure(newCoord, this.color+this.type, this);
-        this.coordinates = newCoord
+        lastMove = [this.coordinates, newCoord];
+        showLastMove(lastMove);
+        this.coordinates = newCoord;
         this.moved = true;
-    };
+        
+    };*/
+
+    this.specialMoves = []; //рокировка , взятие на проходе, превращение пешки
+    //если фигура выделена, и есть ход, который ведет к перечисленному, он указан здесь
     return this;
+}
+
+function moveFigure(newCoord)
+{
+    console.log(this.specialMoves.map(elem => coordToDesk(elem) ) );
+    
+    
+    if ( this.specialMoves.some( elem => isEqual(elem, newCoord) ) ) //особенный ход - вот здесь уже подумать
+    {   
+        console.log("ALARM");
+        if ( this.type == 'P' ) //пешка
+        {
+            if ([0,7].includes(newCoord[0] ) ) //превращение
+                {
+                    console.log("TRANSFORMATION"); //доделать
+                }
+            if ( [2,5].includes(newCoord[0]) ) //взятие на проходе
+                {
+                let eatenPawn = [newCoord[0] + ( (this.color == 'W') ? 1 : -1), newCoord[1] ];
+                setFigure(eatenPawn, '0');
+                console.log(`takingpawn ${coordToDesk(eatenPawn)}`);
+                }
+        }
+
+        if (this.type == 'K')
+        {
+            console.log('roque');
+        }
+    }
+
+    setFigure(this.coordinates, '0'); //оставляем после себя пустое место
+    setFigure(newCoord, this.color+this.type, this); //ставим фигуру на новое
+
+    lastMove = [this.coordinates, newCoord]; //запоминаем ход
+    showLastMove(lastMove);  //чтобы его обозначить (не только)
+
+    this.coordinates = newCoord;
+    this.moved = true;
+
 }
 
 
@@ -45,6 +91,7 @@ function Figure(coordinates, figure)
 function moveZone(board) // возвращает массив координат возможных ходов для фигур на доске
 {
     let res = [];
+    this.specialMoves = [];
     switch (this.type)
     {
     case 'R': 
@@ -115,35 +162,85 @@ function moveZone(board) // возвращает массив координат
                     (this.coordinates[1]==j+1)||
                     (this.coordinates[1]==j-1)                 
                     ) && ( 
-                    JSON.stringify(this.coordinates) != JSON.stringify([i,j]) //сами в себя не ходим
+                    !isEqual(this.coordinates, [i,j]) //сами в себя не ходим
                     ) && (
                     board[i][j][0] != this.color ) //не ходим в своих
                 )
+                    {
+                        res.push( [i,j] );
+                    }
+        // проверки на рокировки. можно упростить
+        //короткая рокировка
+        if ( !this.moved && //король не двигался
+            board[this.coordinates[0] ][5] == '0' && // клетки между королем и ладьей пусты
+            board[this.coordinates[0] ][6] == '0' && //
+            board[this.coordinates[0] ][7] == this.color + 'R' && // в конце стоит ладья своего цвета
+            res.some( elem => isEqual(elem, [this.coordinates[0], 5] ) ) && // клетки движения короля не под атакой
+            !document.getElementById( coordToDesk( [this.coordinates[0],7] ) ).figure.moved //и ладья не двигалась 
+            )
             {
-
-            res.push( [i,j] );
+            this.specialMoves.push( [this.coordinates[0], 6] );
+            res.push( [this.coordinates[0], 6] );
             }
-
-        // *здесь должны быть проверки на рокировки*
-
+        //длинная рокировка
+        if ( !this.moved && //король не двигался
+            board[this.coordinates[0] ][3] == '0' && // клетки между королем и ладьей пусты
+            board[this.coordinates[0] ][2] == '0' && //
+            board[this.coordinates[0] ][1] == '0' && //
+            board[this.coordinates[0] ][0] == this.color + 'R' && // в конце стоит ладья своего цвета
+            res.some( elem => isEqual(elem, [this.coordinates[0], 3] ) ) && // клетки движения короля не под атакой
+            !document.getElementById( coordToDesk( [this.coordinates[0],0] ) ).figure.moved //и ладья не двигалась 
+            )
+            {
+            this.specialMoves.push( [this.coordinates[0], 2] );
+            res.push( [this.coordinates[0], 2] );
+            }
         break;
     case 'P':
 
-        let dir = this.color == "W" ? -1 : 1; 
+        let dir = this.color == "W" ? -1 : 1; //в какую сторону перед
         
-        if ( board[ this.coordinates[0] + dir][this.coordinates[1]] == '0' )
-                res.push( [this.coordinates[0] + dir,this.coordinates[1]] );
-        if ( board[ this.coordinates[0] + 2*dir][this.coordinates[1]] == '0' && board[ this.coordinates[0] + dir][this.coordinates[1]] == '0' && !this.moved)
-            res.push( [this.coordinates[0] + 2*dir,this.coordinates[1]] );
+        if ( board[ this.coordinates[0] + dir][this.coordinates[1]] == '0' ) 
+                res.push( [this.coordinates[0] + dir,this.coordinates[1]] ); //вперед
+
+        if (!this.moved && board[ this.coordinates[0] + 2*dir][this.coordinates[1]] == '0' && board[ this.coordinates[0] + dir][this.coordinates[1]] == '0' )
+            res.push( [this.coordinates[0] + 2*dir,this.coordinates[1]] ); //дважды вперед, если не двигались
 
         if ( this.coordinates[1] != 0 && ![this.color, '0'].includes( board[ this.coordinates[0] + dir][this.coordinates[1]-1] [0] ) )
-            res.push( [this.coordinates[0] + dir,this.coordinates[1]-1] );
+            res.push( [this.coordinates[0] + dir,this.coordinates[1]-1] ); //слева враг
         if ( this.coordinates[1] != 7 && ![this.color, '0'].includes(  board[ this.coordinates[0] + dir][this.coordinates[1]+1] [0] )  )
-            res.push( [this.coordinates[0] + dir,this.coordinates[1]+1] );
+            res.push( [this.coordinates[0] + dir,this.coordinates[1]+1] ); //справа враг
 
-        // *здесь должна быть проверка на взятие на проходе* 
-        // *проверку на превращение лучше наверное запихать в передвижение*
+        // проверка на взятие на проходе
+        if (lastMove != undefined)
+        {
+            if  (isEqual( lastMove[0], [this.coordinates[0] + 2*dir,this.coordinates[1]-1]) && //стоял слева - 2х спереди
+                 isEqual( lastMove[1], [this.coordinates[0], this.coordinates[1]-1]) &&  //теперь стоит строго слева
+                 board[ this.coordinates[0] ][this.coordinates[1]-1] [0] != this.color && //стоит там фигура оппонента, возможно лишнее(как-бы само собой, ходы же по очереди)
+                 board[ this.coordinates[0] ][this.coordinates[1]-1] [1] == 'P' //оппонент ходил пешкой
+                ) 
+                {
+                this.specialMoves.push([this.coordinates[0] + dir,this.coordinates[1]-1] );
+                res.push ( [this.coordinates[0] + dir,this.coordinates[1]-1] );
+                }
 
+            if  (isEqual( lastMove[0], [this.coordinates[0] + 2*dir,this.coordinates[1]+1]) && //то же самое, но справа
+                 isEqual( lastMove[1], [this.coordinates[0], this.coordinates[1]+1]) &&
+                 board[ this.coordinates[0] ][this.coordinates[1]+1] [0] != this.color &&
+                 board[ this.coordinates[0] ][this.coordinates[1]+1] [1] == 'P'  
+                )
+                {
+                this.specialMoves.push([this.coordinates[0] + dir,this.coordinates[1]+1] );
+                res.push ( [this.coordinates[0] + dir,this.coordinates[1]+1] );
+                }
+        }
+
+        // *проверка на превращение    
+        for (elem of res.filter(elem => elem[0] == 0 || elem[0] == 7)) //для каждого хода, который ведет на конец доски
+            this.specialMoves.push(elem); //помним про превращение
+
+        console.log(this.specialMoves.map(elem => coordToDesk(elem) ) );
+        
         break;
 
     }
@@ -152,6 +249,7 @@ function moveZone(board) // возвращает массив координат
 
     return res;
 }
+
 
 function moveDirection( board, dir, Figure ) // идем по клеткам в направлении dir, пока не упремся
 //dir - direction: [1,1]=вправо-вверх, [0,1]=направо и тд
@@ -179,6 +277,9 @@ function moveDirection( board, dir, Figure ) // идем по клеткам в 
 function ClearAll()
 {
     clearPoints();
+    let elements = document.querySelectorAll(".lastmove");
+    for (elem of elements)
+        elem.classList.remove("lastmove"); 
     for (let i = 0; i < 8; i++ )
         for (let j = 0; j < 8; j++ )
         {
@@ -207,8 +308,8 @@ function defaultStage()
                 setFigure( [i,j], mainBoard[i][j] )
             }
     
-    let isTurnWhite = true;
-    let isFigureSelected = false;
+    isTurnWhite = true;
+    isFigureSelected = false;
 }
 
 
@@ -234,6 +335,15 @@ function setPoint(coordinates, point) //point: true => point
     let cell = document.getElementById(cell_id);
     cell.lastElementChild.src = "images/" +  (point ? "point" : "void" ) + ".png";
     point ? pointedCells.push(coordinates) : pointedCells.shift();
+}
+
+function showLastMove(lastMove)
+{
+    let elements = document.querySelectorAll(".lastmove");
+    for (elem of elements)
+        elem.classList.remove("lastmove"); //переставем подсвечиать старый ход
+    document.getElementById(coordToDesk(lastMove[0]) ).classList.add("lastmove");
+    document.getElementById(coordToDesk(lastMove[1]) ).classList.add("lastmove");
 }
 
 function showMoves(fig)
@@ -271,6 +381,10 @@ function deskToCoord(desk) // 'A8' => [0,0], 'E1' => [7,4]
     return [(8 - Number(desk[1]) ), numToSymb.findIndex(elem => elem == desk[0]) ]
 }
 
+function isEqual(arr1,arr2)
+{
+    return JSON.stringify(arr1) == JSON.stringify(arr2);
+}
 
 
 function clickOver(elem)
@@ -281,7 +395,7 @@ function clickOver(elem)
     
     if ( (clickedCell.figure == '0' || isOppClicked) && isFigureSelected && 
     pointedCells.some( (elem)=> 
-    JSON.stringify(elem) == JSON.stringify(deskToCoord(clickedCell.id)) ) )// нажатие на пустую отмеченную клетку, когда выбрана фигура
+    isEqual(elem, deskToCoord(clickedCell.id) ) ) )// нажатие на пустую отмеченную клетку, когда выбрана фигура
         {            
             console.log(`move ${coordToDesk(selectedFigure.coordinates) } => ${clickedCell.id} `);
             
@@ -335,7 +449,8 @@ let pointedCells = []; //клетки отмеченные точками; ко�
 
 let isTurnWhite = true;
 let isFigureSelected = false;
-let selectedFigure;
+let selectedFigure = Figure;
+let lastMove = [Number,Number];
 defaultStage();
 
 
