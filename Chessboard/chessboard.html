@@ -91,6 +91,19 @@
     <button onclick="defaultStage()">New Game</button>
     <button onclick="clearPoints()">Clear</button>
 
+
+
+    <dialog> <!-- диалог для превращения пешки -->
+        <p>Выберите фигуру</p>
+        <br>
+        <button id = 'R' onclick = "pawnTransformationEnd(this.id)">R</button>
+        <button id = 'N' onclick = "pawnTransformationEnd(this.id)">N</button>
+        <button id = 'B' onclick = "pawnTransformationEnd(this.id)">B</button>
+        <button id = 'Q' onclick = "pawnTransformationEnd(this.id)">Q</button>
+    </dialog>
+
+
+
     <script src='main.js'></script>
 </body>
 </html>

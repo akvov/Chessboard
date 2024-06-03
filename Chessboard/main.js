@@ -40,7 +40,7 @@ function Figure(coordinates, figure)
     return this;
 }
 
-function movePrognosis( fig, move  ) //каким будет положение фигур на доске, если сделать такой ход
+function movePrognosis( fig, move  ) //каким будет положение фигур на доске, если передвинуть фигуру fig в координату move 
 {
     let board = mainBoard.map( arr => arr.slice() ); //способ скопировать двумерный массив
     board[ fig.coordinates[0] ][ fig.coordinates[1] ] = '0'; //фигура уходит со своего места всегда
@@ -75,28 +75,24 @@ function moveFigure(newCoord)
 
     if ( this.specialMoves.some( elem => isEqual(elem, newCoord) ) ) //особенный ход - вот здесь уже подумать
     {   
-        console.log("ALARM");
         if ( this.type == 'P' ) //пешка
         {
             if ([0,7].includes(newCoord[0] ) ) //превращение
                 {
-                    console.log("TRANSFORMATION"); //доделать
+                    pawnTransformationStart(this); 
                 }
             if ( [2,5].includes(newCoord[0]) ) //взятие на проходе
                 {
                 let eatenPawn = [newCoord[0] + ( (this.color == 'W') ? 1 : -1), newCoord[1] ];
                 setFigure(eatenPawn, this); //костыль, чтобы не поломались списки оставшихся фигур
                 setFigure(eatenPawn, '0'); //поставить фигуру и сразу же убрать
-                console.log(`takingpawn ${coordToDesk(eatenPawn)}`);
                 }
         }
 
         if (this.type == 'K')
-        { //не нравится обращение к документу, без него можно обойтись - переписать
-            console.log('roque');
+        { //не нравится обращение к документу, без него можно обойтись - надо переписать
             if ( newCoord[1] == 6)
                 {
-                    console.log('short');
                     let rook = document.getElementById( coordToDesk([this.coordinates[0],7]) ).figure;
                     setFigure([this.coordinates[0],5], rook);
                     setFigure([this.coordinates[0],7] );
@@ -105,7 +101,6 @@ function moveFigure(newCoord)
                 }
             if ( newCoord[1] == 2)
                 {
-                    console.log('long');
                     let rook = document.getElementById( coordToDesk([this.coordinates[0],0]) ).figure;
                     setFigure([this.coordinates[0],3], rook);
                     setFigure([this.coordinates[0],0] );
@@ -128,26 +123,22 @@ function moveFigure(newCoord)
 
 }
 
-
-//эта фигня длиной три километра, лучше так описать чем пихать в конструктор
-function moveZone(board) // возвращает массив координат возможных ходов для фигур на доске
+// возвращает массив координат возможных ходов для фигур на доске
+function moveZone(board) 
 {
+    let directions;
     let res = [];
     this.specialMoves = [];
     switch (this.type)
     {
-    case 'R': 
-        for (cell of moveDirection(board, [-1,0], this) ) //можно(?) синтаксически упростить 
-            res.push( cell );
-        for (cell of moveDirection(board, [1,0], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [0,-1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [0,1], this) )
-            res.push( cell );
+    case 'R': //ладья
+        directions = [ [-1,0], [1,0], [0,-1], [0,1] ];
+        for (let dir of directions)    
+            for (cell of moveDirection(board, dir, this) )
+                res.push(cell);
         break;
 
-    case 'N':
+    case 'N': //конь
         for (let i = 0; i < 8; i++ )
             for (let j = 0; j < 8; j++ )
                 if (
@@ -158,42 +149,24 @@ function moveZone(board) // возвращает массив координат
                        ( ( (this.coordinates[1] == j+2)||(this.coordinates[1]==j-2)  )? true : false) : false
                     ) && ( board[i][j] [0] != this.color )
                     )
-                    {
-                    res.push( [i,j] );
-                    }
+                    { res.push( [i,j] ); }
         break;
 
-    case 'B':
-        for (cell of moveDirection(board, [-1,-1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [-1,1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [1,-1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [1,1], this) )
-            res.push( cell );
+    case 'B': //офицер
+        directions = [ [-1,-1], [-1,1], [1,-1], [1,1] ];
+        for (let dir of directions)    
+            for (cell of moveDirection(board, dir, this) )
+                res.push(cell);
         break;
 
-    case 'Q':
-        for (cell of moveDirection(board, [-1,-1], this) ) 
-            res.push( cell );
-        for (cell of moveDirection(board, [-1,1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [1,-1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [1,1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [-1,0], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [1,0], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [0,-1], this) )
-            res.push( cell );
-        for (cell of moveDirection(board, [0,1], this) )
-            res.push( cell );
+    case 'Q': //королева
+        directions = [ [-1,-1], [-1,1], [1,-1], [1,1], [-1,0], [1,0], [0,-1], [0,1] ];
+        for (let dir of directions)    
+            for (cell of moveDirection(board, dir, this) )
+                res.push(cell);
         break;
 
-    case 'K':
+    case 'K': //король
         for (let i = 0; i < 8; i++ )
             for (let j = 0; j < 8; j++ )
             
@@ -220,7 +193,6 @@ function moveZone(board) // возвращает массив координат
             board[this.coordinates[0] ][5] == '0' && // клетки между королем и ладьей пусты
             board[this.coordinates[0] ][6] == '0' && //
             board[this.coordinates[0] ][7] == this.color + 'R' && // в конце стоит ладья своего цвета
-            res.some( elem => isEqual(elem, [this.coordinates[0], 5] ) ) && // клетки движения короля не под атакой
             !document.getElementById( coordToDesk( [this.coordinates[0],7] ) ).figure.moved //и ладья не двигалась 
             )
             {
@@ -233,9 +205,8 @@ function moveZone(board) // возвращает массив координат
             board[this.coordinates[0] ][2] == '0' && //
             board[this.coordinates[0] ][1] == '0' && //
             board[this.coordinates[0] ][0] == this.color + 'R' && // в конце стоит ладья своего цвета
-            res.some( elem => isEqual(elem, [this.coordinates[0], 3] ) ) && // клетки движения короля не под атакой (!!! НЕ ТАК !!!)
             !document.getElementById( coordToDesk( [this.coordinates[0],0] ) ).figure.moved //и ладья не двигалась 
-            )// на последние 2 строчки смотреть несколько неприятно. можно ли обойтись без обращения к документу?
+            )// на последнюю строчку смотреть несколько неприятно. можно обойтись без обращения к документу, надо переписать
             {
             this.specialMoves.push( [this.coordinates[0], 2] );
             res.push( [this.coordinates[0], 2] );
@@ -244,7 +215,9 @@ function moveZone(board) // возвращает массив координат
 
     case 'P':
         let dir = this.color == "W" ? -1 : 1; //в какую сторону перед
-        
+        if ( [-1,8].includes( this.coordinates[0] + dir) )
+            break;
+
         if ( board[ this.coordinates[0] + dir][this.coordinates[1]] == '0' ) 
                 res.push( [this.coordinates[0] + dir,this.coordinates[1]] ); //вперед
 
@@ -262,7 +235,7 @@ function moveZone(board) // возвращает массив координат
         {
             if  (isEqual( lastMove[0], [this.coordinates[0] + 2*dir,this.coordinates[1]-1]) && //стоял слева - 2х спереди
                  isEqual( lastMove[1], [this.coordinates[0], this.coordinates[1]-1]) &&  //теперь стоит строго слева
-                 board[ this.coordinates[0] ][this.coordinates[1]-1] [0] != this.color && //стоит там фигура оппонента, возможно лишнее(как-бы само собой, ходы же по очереди)
+                 board[ this.coordinates[0] ][this.coordinates[1]-1] [0] != this.color && //фигура оппонента, возможно лишнее(как-бы само собой, ходы же по очереди)
                  board[ this.coordinates[0] ][this.coordinates[1]-1] [1] == 'P' //оппонент ходил пешкой
                 ) 
                 {
@@ -281,32 +254,57 @@ function moveZone(board) // возвращает массив координат
                 }
         }
 
-        // *проверка на превращение    
+        // проверка на превращение    
         for (elem of res.filter(elem => elem[0] == 0 || elem[0] == 7)) //для каждого хода, который ведет на конец доски
-            this.specialMoves.push(elem); //помним про превращение
-        
+            this.specialMoves.push(elem); //превращение
         break;
-
     }
 
-
-   
-    // *здесь должна быть проверка для всех найденных ходов, что король не ставится под удар*
-    //console.log(movePrognosis(this, res[0]) )
+    //проверка для всех найденных ходов, что король не ставится под удар
     if (board === mainBoard) //проверку на атаку короля проводить только для явных ходов, чтобы не скатиться в рекурсию
     {
-    res = res.filter(elem =>
-        {
-            
-            //console.log(coordToDesk(elem) )
+    res = res.filter(elem => { return !isKingAttacked(movePrognosis(this, elem), this.color) } );
+    
+    // проверка на то, что при рокировке король не становится под удар
+    if (this.type == 'K' && this.specialMoves.length != 0) 
+        { 
+        if (!( //длинная рокировка
+            ( this.specialMoves.some(el => isEqual(el, [this.coordinates[0], 2]) ) ) && //подтверждение, что особый ход
+            ( res.some(el => isEqual(el, [this.coordinates[0], 3]) ) ) //клетка которую перепрыгивает король - возможный ход
+        ) )
+            {
+                res = res.filter(el => !isEqual(el, [this.coordinates[0], 2] ) ); //так проще чем просто удалить из массива. ...сюр какой-то
+            }
 
-         return !isKingAttacked(movePrognosis(this, elem), this.color) 
+        if (!( //короткая рокировка
+            ( this.specialMoves.some(el => isEqual(el, [this.coordinates[0], 6]) ) ) &&
+            ( res.some(el => isEqual(el, [this.coordinates[0], 5]) ) )  
+        ) )
+            {
+                res = res.filter(el => !isEqual(el, [this.coordinates[0], 6] ) );
+            }
         }
-        );
-    //console.log(res.map(elem => coordToDesk(elem) ).join(' ') )
     }
 
     return res;
+}
+
+function pawnTransformationStart(pawn)
+{
+    var dialog = document.querySelector('dialog');
+    dialog.figure = pawn;
+    dialog.showModal();
+}
+function pawnTransformationEnd(id)
+{
+    var dialog = document.querySelector('dialog');  
+    pawn = dialog.figure;
+    pawn.type = id;
+    pawn.colortype = pawn.color + id;
+    console.log(pawn);
+    setFigure(pawn.coordinates, pawn);
+    console.log(pawn);
+    dialog.close();
 }
 
 
@@ -325,83 +323,89 @@ function moveDirection( board, dir, Figure ) // идем по клеткам в 
         {
             res.push( [point[0], point[1] ] );
             if (board[point[0] ][point[1] ] [0] != '0' ) break; //врезались в противника, дальше не идем
-            point[0] = point[0] + dir[0];  //почему нельзя чтобы [2,3] + [4,5] => [6,8]
+            point[0] = point[0] + dir[0];  //почему нельзя чтобы [2,3] + [4,5] == [6,8]
             point[1] = point[1] + dir[1];
         }
     return res;
 }
 
-function isValidMove(Figure, board, )
-{
 
-}
-
-//фигня в том, что от board тут ничего почти и не зависит, а должно зависеть всё
+//фигня в том, что от board мало что зависит, а должно зависеть всё
 function isKingAttacked(board, color) //атакован ли король цвета color
 {
     let king = null; 
     let list = [];
     res = false;
-
-    if (board === mainBoard) //текущий ход
+    
+    if  (board === mainBoard) //текущий ход
     {
-    king = getFigureList(color).find(elem => elem.type == 'K' )//[0].figure;
+        
+    king = getFigureList(color).find(elem => elem.type == 'K' )//ищем координаты короля
     list = getFigureList( getOppositeColor(color) ) //список вражеских фигур
         
-    
-
     for (elem of list) //для каждой вражеской фигуры 
-    {
-        console.log(elem); 
-        if  (elem.getZone(board).find(arrelem => isEqual(arrelem, king.coordinates) )  ) // смотрим куда они могут походить и сравниваем с координатами короля
-        {
-
-            console.log(list, elem);
-            console.log( ` ${elem.colortype} ${coordToDesk(elem.coordinates)} attacks ${color} King`);
-            res = true; //нашли
-            break; //выходим
+    { // смотрим куда они могут походить и сравниваем с координатами короля
+        if  (elem.getZone(board).find(arrelem => isEqual(arrelem, king.coordinates) ) != undefined  ) 
+        { //нашли => король под атакой
+            return true;
         }
     }
-    return res;
-
+    return false;
     }
-    else //прогнозируемый ход */
-    { //тогда есть расхождения с реальной доской и кто-то из вражеских фигур может быть съеден
-        //проверка на различие списка вражьих фигур с фигурами на прогнозируемой
-        //и в целом все то же самое
-        // запускаем от всех врагов getzone и оно даже правильно посчитается
-        //потому как getzone находит врагов через board
-        //осталось понять, как находить прогнозируемую доску
 
-        //king = getFigureList(color).find(elem => elem.type == 'K' ) //в прогнозе короля искать через доску, мы им походить можем
+    else //прогнозируемый ход для предотвращения недопустимого хода - чтобы король не оказался под ударом
+    { //есть расхождения с реальной доской => кто-то из фигур может быть съеден или передвинут
+        //проблема в том, что для getzone нужна фигура, а координаты у фигур менять нельзя (в фигурах заложено положение фигур на главной доске)
+        //с фигурами оппонента достаточно просто - убедиться что фигура все еще на доске и получить зону атаки
+        //со своими фигурами - не найдет фигуру которую в результате хода перемещаешь
+        //таким образом не получается спрогнозировать, что ход приведёт к шаху/мату - только по факту совершенного хода
         
+        //знаю что неправильно, а как правильно?
+
+        //сначала составляем список фигур оппонента
         let oppList = getFigureList( getOppositeColor(color) ) 
         for (let i = 0; i < 8; i++ )
             for (let j = 0; j < 8; j++)
                 {
-                    if (board[i][j] == color + 'K' ) //нашли короля - запоминаем
+                    if (board[i][j] == color + 'K' ) //свой король - запоминаем координаты
                         king = [i,j];
                     
-                    if (board[i][j][0] == ( getOppositeColor(color) ) ) //фигура оппонента
-                        list.push( oppList.find(elem => 
-                            elem.colortype == board[i][j] /*&&
-                        (isEqual(elem.coordinates, [i,j]) )*/
-                        )  );   //добавляем только те фигуры, которые есть на доске
-                } //последняя проверка не записывает фигуру которую сам двигаешь => ломает проверку на атаку вражеского короля
-    //console.log(oppList);
-    //console.log(list); //
-    for (elem of list) //для каждой вражеской фигуры 
-        if  (elem.getZone(board).some(arrelem => isEqual(arrelem, king) )  ) // смотрим куда они могут походить и сравниваем с координатами короля
+                    if (board[i][j][0] == ( getOppositeColor(color) ) ) //фигура оппонента - добавляем в список
+                    {
+                       let enemFig = oppList.find(elem => 
+                        elem.colortype == board[i][j] && (isEqual(elem.coordinates, [i,j]) ) );
+                        if (enemFig != undefined) list.push( enemFig );   //добавляем фигуру
+                    }
+                } 
+
+        // запускаем от всех врагов getzone
+        for (elem of list) //для каждой вражеской фигуры 
         {
-            console.log( ` ${elem.colortype} ${coordToDesk(elem.coordinates)} attacks ${color} King`);
-            res = true; //нашли
-            break; //выходим
+            if  (elem.getZone(board).find(arrelem => isEqual(arrelem, king)  ) != undefined  ) // смотрим куда они могут походить и сравниваем с координатами короля
+            {
+                return true;
+            }
         }
-    return res;
-    } 
-    
+        return false;
+    }   
 }
 
+//есть ли ходы у игрока цвета col
+// isStalemate &&  isKingAttacked => мат
+// isStalemate && !isKingAttacked => пат   
+function isStalemate(col)
+{
+    let list = getFigureList(col);
+    
+    for (el of list)
+    {
+        if (el.getZone(mainBoard).length != 0) //у какой-либо фигуры есть ход
+            {//console.log( el.colortype , el.getZone(mainBoard).join('|') );
+                return false;
+            }
+    }
+    return true;
+}
 
 
 function ClearAll()
@@ -482,11 +486,14 @@ function setPoint(coordinates, point) //point: true => point
     point ? pointedCells.push(coordinates) : pointedCells.shift();
 }
 
+//показать последний ход
 function showLastMove(lastMove)
 {
     let elements = document.querySelectorAll(".lastmove");
     for (elem of elements)
         elem.classList.remove("lastmove"); //переставем подсвечиать старый ход
+    
+    //подсвечиваем новый
     document.getElementById(coordToDesk(lastMove[0]) ).classList.add("lastmove");
     document.getElementById(coordToDesk(lastMove[1]) ).classList.add("lastmove");
 }
@@ -496,19 +503,9 @@ function showMoves(fig)
     let zone = fig.getZone(mainBoard);
     
     for (let cell of zone)
-        {
-            setPoint(cell, true);
-        }
-    
-    for (let cell of zone)
-        {
-        let prog = movePrognosis(fig, cell);
-        //console.log(prog.map(subarr=>subarr.map(elem => elem = elem == '0' ? '00' : elem).join(' ') ).join('\n') )
-        console.log( `prognosed move for ${fig.colortype} ${coordToDesk(fig.coordinates)} -> ${coordToDesk(cell)} =>      
-        ${getOppositeColor(fig.color)}K attackted = ${isKingAttacked(prog, getOppositeColor(fig.color) )} , 
-        ${fig.color}K attackted = ${isKingAttacked(prog, fig.color)}`); 
-        }
-    }
+        { setPoint(cell, true); }
+}
+
 function clearPoints()
 {
     let cellCoord 
@@ -537,8 +534,7 @@ function isEqual(arr1,arr2)
 }
 
 function deleteFromArray(arr, elem)
-{
-    //console.log('deleting ');
+{ //достаточно криво
     let index = arr.findIndex( arrElem => isEqual(arrElem,elem) );
     arr.splice( index, 1 );
 }
@@ -566,10 +562,6 @@ function clickOver(elem)
         {    
             /**/   
             console.log(`move ${coordToDesk(selectedFigure.coordinates) } => ${clickedCell.id} `);
-            /** /
-            console.log(WhiteFigures.map(elem => elem.colortype ) );
-            console.log(BlackFigures.map(elem => elem.colortype ) );
-            /**/ 
             console.log(`TURN ${!isTurnWhite? 'WHITE' : 'BLACK' } NOW`);
             /**/ 
 
@@ -579,13 +571,21 @@ function clickOver(elem)
             isTurnWhite = !isTurnWhite;
             clearPoints();
 
-            /**/
-            console.log(`W checked = ${isKingAttacked(mainBoard, "W")}`);
-            console.log(`B checked = ${isKingAttacked(mainBoard, "B")}`);
-            /**/
-        }
 
-    if (isOwnClicked ) //нажали
+            let color = isTurnWhite ? 'W' : 'B';
+            /**/
+            console.log(`W checked = ${isKingAttacked(mainBoard, "W")}, stalemate = ${isStalemate(color)}`);
+            console.log(`B checked = ${isKingAttacked(mainBoard, "B")}, stalemate = ${isStalemate(color)}`);
+            /**/
+
+            if (isStalemate(color) && isKingAttacked(mainBoard, color) ) //мат игроку color
+                alert(`Игрок ${getOppositeColor(color)} победил - МАТ`);
+            else if (isStalemate(color) && isKingAttacked(mainBoard, color) ) //пат игроку color
+                alert(`У игрока ${color} нет ходов и король не атакован - ПАТ`);
+        
+            }
+
+    if (isOwnClicked ) //нажали на свою фигуру
         {       
             if (isFigureSelected)
                 clearPoints();
@@ -596,6 +596,7 @@ function clickOver(elem)
         }
 
 }
+
 
 //main
 
@@ -612,6 +613,8 @@ let mainBoard = [
 ['0','0','0','0','0','0','0','0']
 ];
 
+
+
 let pointedCells = []; //клетки отмеченные точками; координаты [0-7,0-7]
 
 let WhiteFigures = [ ];
@@ -622,6 +625,3 @@ let isFigureSelected = false;
 let selectedFigure = Figure;
 let lastMove = [Number,Number];
 defaultStage();
-
-
-
